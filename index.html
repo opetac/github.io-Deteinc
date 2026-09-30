@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Incidencia Delictiva</title>
+    <!-- Librería para leer el archivo CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        :root {
+            --primary-bg: #1e1e2f;
+            --secondary-bg: #2a2a40;
+            --text-color: #ffffff;
+            --accent-color: #ff4757;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+        }
+        header {
+            background-color: var(--secondary-bg);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 3px solid var(--accent-color);
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+        }
+        .sidebar {
+            flex: 1;
+            min-width: 300px;
+            background-color: var(--secondary-bg);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .main-content {
+            flex: 2;
+            min-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h2 {
+            margin-top: 0;
+            color: var(--accent-color);
+        }
+        .map-container {
+            width: 100%;
+            height: 450px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--secondary-bg);
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .stats-box {
+            background-color: var(--primary-bg);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--accent-color);
+            border-radius: 4px;
+        }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .gallery img {
+            width: 100%;
+            border-radius: 5px;
+            border: 2px solid #555;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+        #lista-zonas {
+            list-style-type: none;
+            padding: 0;
+        }
+        #lista-zonas li {
+            padding: 8px;
+            background: #33334d;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Monitor de Incidencia Delictiva y Detenciones</h1>
+        <p>Análisis de zonas, reporte de delitos e información fotográfica relevante</p>
+    </header>
+
+    <div class="container">
+        <!-- Panel Lateral para Datos del CSV -->
+        <aside class="sidebar">
+            <h2>Análisis de Datos</h2>
+            <p>Carga el archivo <strong>"DETENCIONES MES DE JULIO, AGOSTO Y SEPTIEMBRE 2026- SEPTIEMBRE 2026.csv"</strong> para generar las métricas:</p>
+            <input type="file" id="csvFileInput" accept=".csv">
+            
+            <div class="stats-box">
+                <h3>Total de Detenciones</h3>
+                <h1 id="total-detenciones">0</h1>
+            </div>
+
+            <div class="stats-box">
+                <h3>Zonas de Mayor Incidencia</h3>
+                <ul id="lista-zonas">
+                    <li><em>Esperando archivo...</em></li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Contenido Principal: Mapa y Fotos -->
+        <main class="main-content">
+            <div class="map-container">
+                <!-- Se modificó tu enlace "/edit" por "/embed" para que funcione dentro de la página -->
+                <iframe src="https://www.google.com/maps/d/embed?mid=1xZNlucxksW5wgmWipt-C0gqnkdVwj_c&ll=25.71046144771217,-100.3478205&z=11"></iframe>
+            </div>
+
+            <div class="sidebar" style="background-color: var(--secondary-bg);">
+                <h2>Galería Fotográfica y Evidencia</h2>
+                <p>Fotografías relevantes de los operativos o zonas conflictivas:</p>
+                <div class="gallery">
+                    <!-- Puedes reemplazar estos enlaces con las rutas a tus fotos reales -->
+                    <img src="https://via.placeholder.com/200x150/1e1e2f/ff4757?text=Foto+1" alt="Evidencia 1">
+                    <img src="https://via.placeholder.com/200x150/1e1e2f/ff4757?text=Foto+2" alt="Evidencia 2">
+                    <img src="https://via.placeholder.com/200x150/1e1e2f/ff4757?text=Foto+3" alt="Evidencia 3">
+                    <img src="https://via.placeholder.com/200x150/1e1e2f/ff4757?text=Foto+4" alt="Evidencia 4">
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('csvFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const data = results.data;
+                    document.getElementById('total-detenciones').innerText = data.length;
+
+                    // Lógica para contar la frecuencia de cada zona/colonia
+                    // Nota: Se asume que en tu CSV hay una columna llamada "Zona", "Colonia", o "Ubicacion".
+                    // Ajustaremos el código para buscar la columna correcta.
+                    let zonaColumn = null;
+                    if(data.length > 0) {
+                        const keys = Object.keys(data[0]);
+                        zonaColumn = keys.find(k => k.toLowerCase().includes('zona') || k.toLowerCase().includes('colonia') || k.toLowerCase().includes('municipio'));
+                    }
+
+                    if (zonaColumn) {
+                        const countZonas = {};
+                        data.forEach(row => {
+                            const zona = row[zonaColumn] || 'No especificada';
+                            countZonas[zona] = (countZonas[zona] || 0) + 1;
+                        });
+
+                        // Ordenar las zonas de mayor a menor incidencia
+                        const sortedZonas = Object.entries(countZonas)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 5); // Tomar el Top 5
+
+                        // Mostrar en el HTML
+                        const listaUl = document.getElementById('lista-zonas');
+                        listaUl.innerHTML = ''; // Limpiar lista
+                        sortedZonas.forEach(([zona, count]) => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `<span>${zona}</span> <strong>${count} casos</strong>`;
+                            listaUl.appendChild(li);
+                        });
+                    } else {
+                        document.getElementById('lista-zonas').innerHTML = '<li><em>No se detectó columna de zona/colonia.</em></li>';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
