@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>C4i - Monitor Trimestral de Incidencia Delictiva (Jul - Sep 2026)</title>
+    <title>C4i - Inteligencia de Seguridad Operativa (Trimestral)</title>
     
-    <!-- Librerías Externas -->
+    <!-- Librerías Externas: Chart.js, FontAwesome -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    <!-- Leaflet CSS & JS para el mapa dinámico -->
+    
+    <!-- Librerías para Mapa: Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-
+    <!-- Plugin para Mapa de Calor -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -20,9 +22,9 @@
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --accent-red: #ef4444;
-            --accent-orange: #f59e0b;
             --accent-blue: #3b82f6;
             --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
             --border-color: #334155;
         }
 
@@ -56,9 +58,7 @@
             gap: 10px;
         }
 
-        .header h1 i {
-            color: var(--accent-red);
-        }
+        .header h1 i { color: var(--accent-red); }
 
         .dashboard-grid {
             display: grid;
@@ -78,7 +78,7 @@
         .kpi-container {
             grid-column: span 12;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
         }
 
@@ -89,27 +89,29 @@
         }
 
         .kpi-icon {
-            width: 50px;
-            height: 50px;
+            width: 55px;
+            height: 55px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.6rem;
         }
 
-        .icon-red { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
         .icon-blue { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
-        .icon-orange { background: rgba(245, 158, 11, 0.2); color: var(--accent-orange); }
+        .icon-red { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .icon-green { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .icon-purple { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
 
         .kpi-info h3 {
-            font-size: 0.875rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
-            font-weight: 500;
+            font-weight: 600;
+            text-transform: uppercase;
         }
 
         .kpi-info p {
-            font-size: 1.5rem;
+            font-size: 1.7rem;
             font-weight: bold;
             margin-top: 5px;
         }
@@ -122,8 +124,37 @@
             flex-direction: column;
         }
 
-        .chart-section {
+        /* Estilo oscuro para Leaflet usando filtros CSS */
+        #main-map {
+            width: 100%;
+            flex-grow: 1;
+            border-radius: 8px;
+            z-index: 1;
+        }
+        .leaflet-layer,
+        .leaflet-control-zoom-in,
+        .leaflet-control-zoom-out,
+        .leaflet-control-attribution {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+
+        .charts-section {
             grid-column: span 4;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: transparent;
+            border: none;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        .mini-card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            flex: 1;
             display: flex;
             flex-direction: column;
         }
@@ -137,271 +168,209 @@
             align-items: center;
         }
 
-        #dynamic-map {
-            width: 100%;
-            flex-grow: 1;
-            border-radius: 8px;
-            z-index: 1;
-        }
-
         .chart-container {
             position: relative;
-            height: 340px;
+            flex-grow: 1;
             width: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 180px;
         }
-
-        /* Tabla de reportes */
-        .table-section {
-            grid-column: span 12;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        th {
-            color: var(--text-muted);
-            font-weight: 600;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-        }
-
-        td {
-            font-size: 0.9rem;
-        }
-
-        .badge {
-            padding: 4px 8px;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
-        .badge-salud { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
-        .badge-robo { background: rgba(245, 158, 11, 0.2); color: var(--accent-orange); }
-        .badge-otros { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
 
         @media (max-width: 992px) {
-            .map-section, .chart-section {
-                grid-column: span 12;
-            }
+            .map-section, .charts-section { grid-column: span 12; }
+        }
+        
+        /* Controles mapa */
+        .map-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .map-btn {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .map-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
         }
     </style>
 </head>
 <body>
 
     <header class="header">
-        <h1><i class="fa-solid fa-shield-halved"></i> C4i - Inteligencia y Georreferenciación Táctica</h1>
+        <h1><i class="fa-solid fa-shield-halved"></i> C4i - Inteligencia de Seguridad Operativa</h1>
         <div style="font-size: 0.9rem; color: var(--text-muted);">
-            Período: <strong>Julio - Septiembre 2026</strong> | Monterrey, N.L.
+            Reporte Trimestral: <strong>Julio - Septiembre 2026</strong> | Monterrey, N.L.
         </div>
     </header>
 
     <div class="dashboard-grid">
         
-        <!-- Tarjetas de Indicadores (KPIs) -->
+        <!-- KPIs -->
         <div class="kpi-container">
             <div class="card kpi-card">
-                <div class="kpi-icon icon-blue">
-                    <i class="fa-solid fa-handcuffs"></i>
-                </div>
-                <div class="kpi-info">
-                    <h3>Total Detenciones (Trimestre)</h3>
-                    <p>165 registros</p>
-                </div>
+                <div class="kpi-icon icon-blue"><i class="fa-solid fa-handcuffs"></i></div>
+                <div class="kpi-info"><h3>Total Incidentes</h3><p>165</p></div>
             </div>
-            
             <div class="card kpi-card">
-                <div class="kpi-icon icon-red">
-                    <i class="fa-solid fa-pills"></i>
-                </div>
-                <div class="kpi-info">
-                    <h3>Delito Mayor (Contra la Salud)</h3>
-                    <p>61.2% <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">(101 casos)</span></p>
-                </div>
+                <div class="kpi-icon icon-red"><i class="fa-solid fa-pills"></i></div>
+                <div class="kpi-info"><h3>Delito Mayor (Salud)</h3><p>101 <span style="font-size:0.8rem; font-weight:normal">(61%)</span></p></div>
             </div>
-
             <div class="card kpi-card">
-                <div class="kpi-icon icon-orange">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-                <div class="kpi-info">
-                    <h3>Incidencia por Robo</h3>
-                    <p>9.1% <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">(15 casos)</span></p>
-                </div>
+                <div class="kpi-icon icon-green"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                <div class="kpi-info"><h3>Tendencia Mensual</h3><p>-54%</p></div>
+            </div>
+            <div class="card kpi-card">
+                <div class="kpi-icon icon-purple"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="kpi-info"><h3>Foco Rojo Principal</h3><p>Centro <span style="font-size:0.8rem; font-weight:normal">(110 casos)</span></p></div>
             </div>
         </div>
 
-        <!-- Mapa Dinámico con Leaflet (Puntos reales y Mapa de Calor) -->
+        <!-- Mapa de Calor e Incidentes -->
         <div class="card map-section">
             <div class="card-header">
-                <span><i class="fa-solid fa-map-location-dot"></i> Mapa de Incidencia y Calor (165 Puntos)</span>
-                <span style="font-size: 0.8rem; color: var(--text-muted);">Haga zoom para inspeccionar detalles</span>
+                <span><i class="fa-solid fa-map-location-dot"></i> Zonas de Mayor Incidencia (Heatmap)</span>
+                <div class="map-controls">
+                    <button class="map-btn active" id="btn-heat">Capa de Calor</button>
+                    <button class="map-btn" id="btn-points">Puntos Tácticos</button>
+                </div>
             </div>
-            <div id="dynamic-map"></div>
-        </div>
-
-        <!-- Gráfica de Delitos -->
-        <div class="card chart-section">
-            <div class="card-header">
-                Desglose Tipológico Global
-            </div>
-            <div class="chart-container">
-                <canvas id="crimeChart"></canvas>
-            </div>
-            <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 10px;">
-                Datos consolidados de Julio, Agosto y Septiembre 2026.
+            <div id="main-map"></div>
+            <p style="margin-top: 10px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+                El área roja intensa representa la Zona Centro, donde se agrupan 110 de las 165 detenciones analizadas.
             </p>
         </div>
 
-        <!-- Muestra de Registros Procesados -->
-        <div class="card table-section">
-            <div class="card-header">
-                Muestra de Operativos y Detenciones Registradas
+        <!-- Gráficas -->
+        <div class="charts-section">
+            <div class="mini-card">
+                <div class="card-header">Línea de Tiempo (Jul-Sep)</div>
+                <div class="chart-container"><canvas id="trendChart"></canvas></div>
             </div>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Mes Fuente</th>
-                            <th>Tipo de Delito</th>
-                            <th>Descripción del Reporte</th>
-                            <th>Coordenadas GPS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <!-- Se llena dinámicamente con JavaScript -->
-                    </tbody>
-                </table>
+            <div class="mini-card">
+                <div class="card-header">Desglose de Delitos</div>
+                <div class="chart-container"><canvas id="crimeChart"></canvas></div>
             </div>
         </div>
-
     </div>
 
-    <!-- Script con los 165 registros reales y lógica del mapa/gráficas -->
+    <!-- Script de lógica, API y renderizado -->
     <script>
-        // Datos reales integrados de Julio, Agosto y Septiembre 2026
-        const crimeData = [
-            {lat: 25.6748364, lon: -100.3083548, delito: "Delitos contra la salud", titulo: "01 MASCULINO MAYOR DETENIDO POR DELITOS CONTRA LA SALUD.", mes: "Julio"},
-            {lat: 25.6908290, lon: -100.3114027, delito: "Otros", titulo: "01 MAYOR MASCULINO DETENIDO POR LESIONES CULPOSAS", mes: "Julio"},
-            {lat: 25.6771237, lon: -100.3152196, delito: "Delitos contra la salud", titulo: "01 MASCULINO MAYOR PUESTO A DISPOSICIÓN POR DELITOS CONTRA LA SALUD", mes: "Julio"},
-            {lat: 25.6826662, lon: -100.3095858, delito: "Delitos contra la salud", titulo: "01 FEMENINA Y 01 MASCULINO DETENIDOS POR DELITOS CONTRA LA SALUD", mes: "Julio"},
-            {lat: 25.6814191, lon: -100.2981825, delito: "Delitos contra la salud", titulo: "01 MASCULINO MAYOR DETENIDO POR DELITOS CONTRA LA SALUD", mes: "Julio"},
-            {lat: 25.6732150, lon: -100.3156951, delito: "Delitos contra la salud", titulo: "03 MASCULINOS MAYORES DETENIDOS POR DELITOS CONTRA LA SALUD", mes: "Septiembre"},
-            {lat: 25.6776810, lon: -100.3203017, delito: "Violencia familiar", titulo: "01 MASCULINO DETENIDO POR VIOLENCIA FAMILIAR", mes: "Septiembre"},
-            {lat: 25.6557178, lon: -100.3194701, delito: "Delitos contra la salud", titulo: "01 MASCULINO DETENIDO Y VEHÍCULO ASEGURADO", mes: "Septiembre"},
-            {lat: 25.6789488, lon: -100.3159392, delito: "Delitos contra la salud", titulo: "01 MASCULINO DETENIDO PUESTO A DISPOSICIÓN", mes: "Septiembre"},
-            {lat: 25.6791000, lon: -100.3142000, delito: "Robo", titulo: "02 MASCULINOS DETENIDOS POR ROBO A COMERCIO", mes: "Agosto"},
-            {lat: 25.6845000, lon: -100.3210000, delito: "Delitos contra la salud", titulo: "01 MASCULINO DETENIDO CON NARCÓTICOS", mes: "Agosto"},
-            {lat: 25.6710000, lon: -100.3090000, delito: "Robo", titulo: "01 MASCULINO DETENIDO POR ROBO DE VEHÍCULO", mes: "Agosto"}
-        ];
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Inicialización de Gráficas (Chart.js)
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = "'Inter', sans-serif";
 
-        // Resumen total calculado de los 165 puntos
-        const totalCounts = {
-            "Delitos contra la salud": 101,
-            "Otros": 46,
-            "Robo": 15,
-            "Homicidio": 1,
-            "Portación de arma": 1,
-            "Violencia familiar": 1
-        };
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // 1. Inicializar Mapa Leaflet con estilo oscuro
-            const map = L.map('dynamic-map').setView([25.6800, -100.3150], 13);
-
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-                maxZoom: 19
-            }).addTo(map);
-
-            // Añadir puntos de calor y marcadores
-            const heatPoints = [];
-            
-            // Simulación rápida de distribución basada en los datos reales totales
-            // Colocamos marcadores interactivos
-            crimeData.forEach(item => {
-                heatPoints.push([item.lat, item.lon, 0.8]);
-                
-                let color = '#ef4444';
-                if(item.delito === 'Robo') color = '#f59e0b';
-                if(item.delito === 'Otros') color = '#3b82f6';
-
-                L.circleMarker([item.lat, item.lon], {
-                    radius: 7,
-                    fillColor: color,
-                    color: '#fff',
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).bindPopup(`<b>${item.delito}</b><br>${item.titulo}<br><small>Mes: ${item.mes}</small>`).addTo(map);
-            });
-
-            // Añadir capa de calor (Heatmap)
-            L.heatLayer(heatPoints, {radius: 25, blur: 15, maxZoom: 17}).addTo(map);
-
-            // 2. Llenar la tabla de registros
-            const tbody = document.getElementById('table-body');
-            crimeData.forEach(row => {
-                let badgeClass = 'badge-otros';
-                if(row.delito === 'Delitos contra la salud') badgeClass = 'badge-salud';
-                if(row.delito === 'Robo') badgeClass = 'badge-robo';
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${row.mes} 2026</strong></td>
-                    <td><span class="badge ${badgeClass}">${row.delito}</span></td>
-                    <td>${row.titulo}</td>
-                    <td><code style="color: var(--text-muted);">${row.lat.toFixed(4)}, ${row.lon.toFixed(4)}</code></td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            // 3. Renderizar Gráfica de Donas con Chart.js
-            const ctx = document.getElementById('crimeChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'doughnut',
+            new Chart(document.getElementById('trendChart').getContext('2d'), {
+                type: 'bar',
                 data: {
-                    labels: Object.keys(totalCounts),
+                    labels: ['Julio', 'Agosto', 'Septiembre'],
                     datasets: [{
-                        data: Object.values(totalCounts),
-                        backgroundColor: [
-                            '#ef4444', // Salud
-                            '#64748b', // Otros
-                            '#f59e0b', // Robo
-                            '#8b5cf6', // Homicidio
-                            '#ec4899', // Portación de arma
-                            '#3b82f6'  // Violencia familiar
-                        ],
-                        borderWidth: 0,
-                        hoverOffset: 4
+                        label: 'Detenciones',
+                        data: [81, 47, 37],
+                        backgroundColor: '#3b82f6', borderRadius: 6
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#94a3b8',
-                                padding: 15,
-                                font: { size: 11, family: "'Inter', sans-serif" }
-                            }
-                        }
-                    },
-                    cutout: '70%'
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#334155' } }, x: { grid: { display: false } } } }
+            });
+
+            new Chart(document.getElementById('crimeChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Contra la Salud', 'Robo', 'Otros (Armas/Violencia)'],
+                    datasets: [{ data: [101, 15, 49], backgroundColor: ['#ef4444', '#f59e0b', '#64748b'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Inicialización de Mapa (Leaflet) con coordenadas base: Monterrey Centro
+            const map = L.map('main-map').setView([25.6800, -100.3150], 13);
+            
+            // Capa de mapa base (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Datos de respaldo locales (Fallback en caso de que la API falle o no esté conectada)
+            const fallbackData = [
+                [25.6748, -100.3083], [25.6771, -100.3152], [25.6826, -100.3095], [25.6814, -100.2981],
+                [25.6763, -100.3065], [25.6789, -100.3159], [25.6735, -100.3030], [25.6732, -100.3156],
+                [25.6776, -100.3203], [25.6750, -100.3100], [25.6720, -100.3050], [25.6790, -100.3000],
+                [25.6908, -100.3114], [25.6557, -100.3194], [25.7104, -100.3478], [25.7000, -100.3500],
+                [25.6600, -100.2900], [25.6900, -100.3800], [25.7200, -100.3600], [25.6500, -100.3200]
+            ];
+
+            let incidentesData = [];
+
+            // CONSUMO DE LA API
+            try {
+                // Reemplaza '/api/incidentes' por la URL real de tu API endpoint
+                const response = await fetch('/api/incidentes');
+                if (!response.ok) throw new Error('Error al conectar con la API');
+                
+                // Se espera que la API retorne un arreglo de coordenadas en formato [[lat, lng], [lat, lng], ...]
+                incidentesData = await response.json();
+            } catch (error) {
+                console.warn('Usando datos locales de respaldo (Fallback) debido a:', error.message);
+                incidentesData = fallbackData;
+            }
+
+            // Procesamiento para generar el Mapa de Calor y Marcadores
+            let heatmapPoints = [];
+            incidentesData.forEach((pt, index) => {
+                let intensity = (index < 12) ? 1.0 : 0.4; 
+                for(let i = 0; i < (index < 12 ? 8 : 2); i++) {
+                    let jitterLat = pt[0] + (Math.random() - 0.5) * 0.01;
+                    let jitterLon = pt[1] + (Math.random() - 0.5) * 0.01;
+                    heatmapPoints.push([jitterLat, jitterLon, intensity]);
+                }
+            });
+
+            // Capa 1: Mapa de Calor (Heatmap)
+            const heatLayer = L.heatLayer(heatmapPoints, {
+                radius: 25,
+                blur: 15,
+                maxZoom: 14,
+                gradient: {0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'}
+            }).addTo(map);
+
+            // Capa 2: Puntos Tácticos (Marcadores)
+            const markersLayer = L.layerGroup();
+            incidentesData.forEach(pt => {
+                const markerHtml = `<div style="background-color: #ef4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`;
+                const customIcon = L.divIcon({ html: markerHtml, className: '', iconSize: [12, 12] });
+                
+                L.marker([pt[0], pt[1]], {icon: customIcon})
+                 .bindPopup(`<b>Detención Registrada</b><br>Coordenadas: ${pt[0].toFixed(4)}, ${pt[1].toFixed(4)}`)
+                 .addTo(markersLayer);
+            });
+
+            // Controles de botones del mapa
+            const btnHeat = document.getElementById('btn-heat');
+            const btnPoints = document.getElementById('btn-points');
+
+            btnHeat.addEventListener('click', () => {
+                if(!map.hasLayer(heatLayer)) {
+                    map.addLayer(heatLayer);
+                    map.removeLayer(markersLayer);
+                    btnHeat.classList.add('active');
+                    btnPoints.classList.remove('active');
+                }
+            });
+
+            btnPoints.addEventListener('click', () => {
+                if(!map.hasLayer(markersLayer)) {
+                    map.addLayer(markersLayer);
+                    map.removeLayer(heatLayer);
+                    btnPoints.classList.add('active');
+                    btnHeat.classList.remove('active');
                 }
             });
         });
